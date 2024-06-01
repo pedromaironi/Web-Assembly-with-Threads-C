@@ -4,102 +4,103 @@
 #include <emscripten.h>
 
 typedef struct {
-    int *arr;
+    int *array;
     int n;
 } SortTask;
 
 typedef struct {
-    int *arr;
+    int *array;
     int n;
     int key;
 } SearchTask;
 
-void print_array(int arr[], int n) {
+void print_array(int array[], int n) {
     for (int i = 0; i < n; i++) {
-        printf("%d ", arr[i]);
+        printf("%d ", array[i]);
     }
     printf("\n");
 }
 
 void* burbuja_thread(void* arg) {
     SortTask* task = (SortTask*)arg;
-    int* arr = task->arr;
+    int* array = task->array;
     int n = task->n;
     for (int i = 0; i < n-1; i++) {
         for (int j = 0; j < n-i-1; j++) {
-            if (arr[j] > arr[j+1]) {
-                int temp = arr[j];
-                arr[j] = arr[j+1];
-                arr[j+1] = temp;
+            if (array[j] > array[j+1]) {
+                int temp = array[j];
+                array[j] = array[j+1];
+                array[j+1] = temp;
             }
         }
     }
     printf("Array ordenado por burbuja: ");
-    print_array(arr, n);
+    print_array(array, n);
     return NULL;
 }
 
-int partition(int arr[], int low, int high) {
-    int pivot = arr[high];
+int partition(int array[], int low, int high) {
+    int pivot = array[high];
     int i = (low - 1);
     for (int j = low; j < high; j++) {
-        if (arr[j] < pivot) {
+        if (array[j] < pivot) {
             i++;
-            int temp = arr[i];
-            arr[i] = arr[j];
-            arr[j] = temp;
+            int temp = array[i];
+            array[i] = array[j];
+            array[j] = temp;
         }
     }
-    int temp = arr[i + 1];
-    arr[i + 1] = arr[high];
-    arr[high] = temp;
+    int temp = array[i + 1];
+    array[i + 1] = array[high];
+    array[high] = temp;
     return (i + 1);
+}
+
+void quicksort(int array[], int low, int high) {
+    if (low < high) {
+        int pi = partition(array, low, high);
+        quicksort(array, low, pi - 1);
+        quicksort(array, pi + 1, high);
+    }
 }
 
 void* quicksort_thread(void* arg) {
     SortTask* task = (SortTask*)arg;
-    int* arr = task->arr;
-    int low = 0;
-    int high = task->n - 1;
-    if (low < high) {
-        int pi = partition(arr, low, high);
-        SortTask leftTask = {arr, pi};
-        SortTask rightTask = {arr + pi + 1, high - pi};
-        quicksort_thread((void*)&leftTask);
-        quicksort_thread((void*)&rightTask);
-    }
-    printf("Array ordenado por quicksort: ");
-    print_array(arr, task->n);
+    int* array = task->array;
+    int n = task->n;
+    quicksort(array, 0, n - 1);
+    printf("arrayay ordenado por quicksort: ");
+    print_array(array, n);
     return NULL;
 }
 
 void* insercion_thread(void* arg) {
     SortTask* task = (SortTask*)arg;
-    int* arr = task->arr;
+    int* array = task->array;
     int n = task->n;
     for (int i = 1; i < n; i++) {
-        int key = arr[i];
+        int key = array[i];
         int j = i - 1;
-        while (j >= 0 && arr[j] > key) {
-            arr[j + 1] = arr[j];
+        while (j >= 0 && array[j] > key) {
+            array[j + 1] = array[j];
             j = j - 1;
         }
-        arr[j + 1] = key;
+        array[j + 1] = key;
     }
     printf("Array ordenado por inserción: ");
-    print_array(arr, n);
+    print_array(array, n);
     return NULL;
 }
 
 void* busqueda_secuencial_thread(void* arg) {
     SearchTask* task = (SearchTask*)arg;
-    int* arr = task->arr;
+    int* array = task->array;
     int n = task->n;
     int key = task->key;
     int found = -1;
 
     for (int i = 0; i < n; i++) {
-        if (arr[i] == key) {
+        if (array[i] == key) {
             found = i;
             break;
         }
@@ -115,7 +116,7 @@ void* busqueda_secuencial_thread(void* arg) {
 
 void* busqueda_binaria_thread(void* arg) {
     SearchTask* task = (SearchTask*)arg;
-    int* arr = task->arr;
+    int* array = task->array;
     int n = task->n;
     int key = task->key;
     int low = 0;
@@ -125,10 +126,10 @@ void* busqueda_binaria_thread(void* arg) {
     while (low <= high) {
         int mid = low + (high - low) / 2;
 
-        if (arr[mid] == key) {
+        if (array[mid] == key) {
             found = mid;
             break;
-        } else if (arr[mid] < key) {
+        } else if (array[mid] < key) {
             low = mid + 1;
         } else {
             high = mid - 1;
@@ -145,21 +146,21 @@ void* busqueda_binaria_thread(void* arg) {
 
 int main() {
     // Datos para los algoritmos de ordenación
-    int arr1[] = {2, 7, 25, 34, 1, 32};
-    int arr2[] = {45, 7, 23, 65, 5, 62};
-    int arr3[] = {65, 43, 23, 22, 2, 1};
-    int arr4[] = {1, 3, 5, 7, 9, 11};
-    int arr5[] = {2, 4, 6, 8, 10, 12};
+    int array1[] = {2, 7, 25, 34, 1, 32};
+    int array2[] = {45, 7, 23, 65, 5, 62};
+    int array3[] = {65, 43, 23, 22, 2, 1};
+    int array4[] = {1, 3, 5, 7, 9, 11};
+    int array5[] = {2, 4, 6, 8, 10, 12};
 
-    int n1 = sizeof(arr1)/sizeof(arr1[0]);
-    int n2 = sizeof(arr2)/sizeof(arr2[0]);
-    int n3 = sizeof(arr3)/sizeof(arr3[0]);
-    int n4 = sizeof(arr4)/sizeof(arr4[0]);
-    int n5 = sizeof(arr5)/sizeof(arr5[0]);
+    int n1 = sizeof(array1)/sizeof(array1[0]);
+    int n2 = sizeof(array2)/sizeof(array2[0]);
+    int n3 = sizeof(array3)/sizeof(array3[0]);
+    int n4 = sizeof(array4)/sizeof(array4[0]);
+    int n5 = sizeof(array5)/sizeof(array5[0]);
 
-    SortTask task1 = {arr1, n1};
-    SortTask task2 = {arr2, n2};
-    SortTask task3 = {arr3, n3};
+    SortTask task1 = {array1, n1};
+    SortTask task2 = {array2, n2};
+    SortTask task3 = {array3, n3};
 
     pthread_t t1, t2, t3;
 
@@ -174,8 +175,8 @@ int main() {
     int key1 = 1;
     int key2 = 4;
 
-    SearchTask searchTask1 = {arr4, n4, key1};
-    SearchTask searchTask2 = {arr5, n5, key2};
+    SearchTask searchTask1 = {array4, n4, key1};
+    SearchTask searchTask2 = {array5, n5, key2};
 
     pthread_t t4, t5;
 
